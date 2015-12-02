@@ -420,21 +420,30 @@ static force_inline id YYValueForKeyPath(__unsafe_unretained NSDictionary *dic, 
 
 @implementation _YYModelMeta
 - (instancetype)initWithClass:(Class)cls {
+    //获取类信息
     YYClassInfo *classInfo = [YYClassInfo classInfoWithClass:cls];
+    
     if (!classInfo) return nil;
     self = [super init];
     
     // Get black list
     NSSet *blacklist = nil;
+    
+    // 如果实现了该方法，则处理过程中会忽略该列表内的所有属性
     if ([cls respondsToSelector:@selector(modelPropertyBlacklist)]) {
+        
+        //modelPropertyBlacklist 取得替换key数组
         NSArray *properties = [(id<YYModel>)cls modelPropertyBlacklist];
+        
         if (properties) {
+            
             blacklist = [NSSet setWithArray:properties];
         }
     }
     
     // Get white list
     NSSet *whitelist = nil;
+    // 如果实现了该方法，则处理过程中不会处理该列表外的属性。
     if ([cls respondsToSelector:@selector(modelPropertyWhitelist)]) {
         NSArray *properties = [(id<YYModel>)cls modelPropertyWhitelist];
         if (properties) {
@@ -444,35 +453,72 @@ static force_inline id YYValueForKeyPath(__unsafe_unretained NSDictionary *dic, 
     
     // Get container property's generic class
     NSDictionary *genericMapper = nil;
+    
+    // 返回容器类中的所需要存放的数据类型 (以 Class 或 Class Name 的形式)。
     if ([cls respondsToSelector:@selector(modelContainerPropertyGenericClass)]) {
+        
+        //看yy大神注释 。。。虽然是英文。。但是应该理解
+        //取得对应数据
         genericMapper = [(id<YYModel>)cls modelContainerPropertyGenericClass];
         if (genericMapper) {
             NSMutableDictionary *tmp = [NSMutableDictionary new];
+            //数组循环操作数据
             [genericMapper enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+                //key 不是 NSString类型
                 if (![key isKindOfClass:[NSString class]]) return;
+                
+                //Returns the class of an object.
+                
+                //这里我理解为  根据obj 得到 Class
+                
                 Class meta = object_getClass(obj);
+                
                 if (!meta) return;
+                
+                //eturns a Boolean value that indicates whether a class object is a metaclass
+                //如果是一个metaclass
                 if (class_isMetaClass(meta)) {
+                    //set key value
                     tmp[key] = obj;
+                    
                 } else if ([obj isKindOfClass:[NSString class]]) {
+                    
                     Class cls = NSClassFromString(obj);
+                    
                     if (cls) {
+                         //set key value
                         tmp[key] = cls;
+                        
                     }
                 }
             }];
+            
+            //这时所有的key 对应的应该都是Class
             genericMapper = tmp;
         }
     }
     
     // Create all property metas.
+    //获取property 属性？
     NSMutableDictionary *allPropertyMetas = [NSMutableDictionary new];
+    
+    //上面取到的类信息
+    
     YYClassInfo *curClassInfo = classInfo;
-    while (curClassInfo && curClassInfo.superCls != nil) { // recursive parse super class, but ignore root class (NSObject/NSProxy)
+    
+    while (curClassInfo && curClassInfo.superCls != nil) {
+        // recursive parse super class, but ignore root class (NSObject/NSProxy)
+        
         for (YYClassPropertyInfo *propertyInfo in curClassInfo.propertyInfos.allValues) {
+            
             if (!propertyInfo.name) continue;
+            
             if (blacklist && [blacklist containsObject:propertyInfo.name]) continue;
+            
             if (whitelist && ![whitelist containsObject:propertyInfo.name]) continue;
+            
+            //我猜测是替换属性名称  看不懂啊！！！！！！
+            
             _YYModelPropertyMeta *meta = [_YYModelPropertyMeta metaWithClassInfo:classInfo
                                                                     propertyInfo:propertyInfo
                                                                          generic:genericMapper[propertyInfo.name]];

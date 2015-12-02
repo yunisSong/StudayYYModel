@@ -141,7 +141,7 @@ YYGHUser * Model = [YYGHUser yy_modelWithJSON:json];
     OSSpinLockUnlock(&lock);
     //如果刚才没有得到数据  生成数据并存入cache
     if (!meta) {
-        //这里是取得类的@property属性
+        //这里是取得类的@property属性或者全部信息，目前还没有研究到
         meta = [[_YYModelMeta alloc] initWithClass:cls];
         if (meta) {
             //存储值，下次可以直接读取，不需要在生成了。
@@ -156,7 +156,7 @@ YYGHUser * Model = [YYGHUser yy_modelWithJSON:json];
 
 ```
 
-
+#未完待续
 
 
 

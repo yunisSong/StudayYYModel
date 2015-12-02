@@ -245,9 +245,17 @@ YYEncodingType YYEncodingGetType(const char *typeEncoding) {
     if (!cls) return nil;
     self = [super init];
     _cls = cls;
+    //Returns the superclass of a class. 获取父类
     _superCls = class_getSuperclass(cls);
+    
+    
+    //Returns a Boolean value that indicates whether a class object is a metaclass.
+    //返回一个布尔值，指示类对象是否是元类。
     _isMeta = class_isMetaClass(cls);
     if (!_isMeta) {
+        //class_getName :Returns the name of a class.
+        //objc_getMetaClass : Returns the metaclass definition of a specified class.
+        //返回指定类的元类的定义。
         _metaCls = objc_getMetaClass(class_getName(cls));
     }
     _name = NSStringFromClass(cls);
@@ -306,22 +314,32 @@ YYEncodingType YYEncodingGetType(const char *typeEncoding) {
 
 + (instancetype)classInfoWithClass:(Class)cls {
     if (!cls) return nil;
+    //创建缓存区域
     static CFMutableDictionaryRef classCache;
     static CFMutableDictionaryRef metaCache;
     static dispatch_once_t onceToken;
     static OSSpinLock lock;
+    //保证只执行一次
     dispatch_once(&onceToken, ^{
+        
         classCache = CFDictionaryCreateMutable(CFAllocatorGetDefault(), 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
         metaCache = CFDictionaryCreateMutable(CFAllocatorGetDefault(), 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
         lock = OS_SPINLOCK_INIT;
     });
+    
+    //加锁
     OSSpinLockLock(&lock);
+    //取缓存信息
     YYClassInfo *info = CFDictionaryGetValue(class_isMetaClass(cls) ? metaCache : classCache, (__bridge const void *)(cls));
+    //判断是否需要更新信息
     if (info && info->_needUpdate) {
         [info _update];
     }
+    //解锁
     OSSpinLockUnlock(&lock);
+    //如果信息为空
     if (!info) {
+        //生成
         info = [[YYClassInfo alloc] initWithClass:cls];
         if (info) {
             OSSpinLockLock(&lock);
